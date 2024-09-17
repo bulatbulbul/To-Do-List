@@ -1,7 +1,11 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"os"
+	"strconv"
+	"strings"
 )
 
 func menu() {
@@ -11,7 +15,9 @@ func menu() {
 	fmt.Println("3. Отметить выполнение задачи")
 	fmt.Println("4. Редактировать задачу")
 	fmt.Println("5. Показать все задачи")
-	fmt.Println("6. Выход")
+	fmt.Println("6. Загрузить данные")
+	fmt.Println("7. Сохранить данные")
+	fmt.Println("8. Выход")
 }
 
 type Task struct {
@@ -145,6 +151,51 @@ func ShowTasks() {
 	}
 }
 
+func SaveTasks(filename string) {
+	file, err := os.Create(filename)
+	if err != nil {
+		fmt.Println("Ошибка создания файла:", err)
+	}
+	defer file.Close()
+
+	writer := bufio.NewWriter(file)
+	for _, task := range taskList {
+		line := strconv.Itoa(task.ID) + "," + task.Name + "," + strconv.FormatBool(task.Status) + "\n"
+		writer.WriteString(line)
+	}
+	writer.Flush()
+
+}
+
+func LoadTasks(filename string) {
+	file, err := os.Open(filename)
+	if err != nil {
+		fmt.Println("Ошибка открытия файла:", err)
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		pars := strings.Split(line, ",")
+		if len(pars) != 3 {
+			continue
+		}
+		id, _ := strconv.Atoi(pars[0])
+		name := pars[1]
+		status, _ := strconv.ParseBool(pars[2])
+		taskList = append(taskList,
+			Task{
+				ID:     id,
+				Name:   name,
+				Status: status,
+			})
+	}
+	if err := scanner.Err(); err != nil {
+		fmt.Println("Ошибка при чтении файла:", err)
+	}
+}
+
 func main() {
 	var choice int
 	flag := true
@@ -163,6 +214,10 @@ func main() {
 		case 5:
 			ShowTasks()
 		case 6:
+			LoadTasks("tasks.txt")
+		case 7:
+			SaveTasks("tasks.txt")
+		case 8:
 			flag = false
 		}
 	}
