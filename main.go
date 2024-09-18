@@ -3,10 +3,49 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"github.com/google/uuid"
 	"os"
 	"strconv"
 	"strings"
 )
+
+func GetInputString() string {
+	scanner := bufio.NewScanner(os.Stdin)
+	var input string
+	for {
+		if scanner.Scan() {
+			input = scanner.Text()
+			if len(strings.TrimSpace(input)) > 0 {
+				break
+			} else {
+				fmt.Println("Ввод не может быть пустым. Повторите еще раз.")
+			}
+		} else {
+			fmt.Println("Ошибка при вводе. Повторите еще раз.")
+		}
+	}
+	return input
+}
+
+func GetInputInt() int {
+	scanner := bufio.NewScanner(os.Stdin)
+	var input int
+	for {
+		if scanner.Scan() {
+			userInput := scanner.Text()
+			number, err := strconv.Atoi(userInput)
+			if err == nil {
+				input = number
+				break
+			} else {
+				fmt.Println("Введите корректное число. Повторите еще раз.")
+			}
+		} else {
+			fmt.Println("Ошибка при вводе. Повторите еще раз.")
+		}
+	}
+	return input
+}
 
 func menu() {
 	fmt.Println("Меню:")
@@ -21,7 +60,7 @@ func menu() {
 }
 
 type Task struct {
-	ID   int
+	ID   string
 	Name string
 	//Description string
 	Status bool
@@ -30,18 +69,16 @@ type Task struct {
 	//CreatedAt time.Time
 }
 
-var currentID int
 var taskList []Task
 
-func getNextID() int {
-	currentID++
-	return currentID
+func getNextID() string {
+	return uuid.New().String()
 }
+
 func AddTask() {
 	fmt.Println("Добавление задачи")
-	var name string
 	fmt.Println("Введеите название задачи")
-	fmt.Scan(&name)
+	name := GetInputString()
 	fmt.Println(name)
 	newTask := Task{
 		ID:     getNextID(),
@@ -54,9 +91,8 @@ func AddTask() {
 
 func DeleteTask() {
 	fmt.Println("Удаление задачи")
-	var id int
 	fmt.Println("Введите ID задачи")
-	fmt.Scan(&id)
+	id := GetInputString()
 	indexToRemove := -1
 	for i, task := range taskList {
 		if task.ID == id {
@@ -65,20 +101,17 @@ func DeleteTask() {
 		}
 	}
 	if indexToRemove == -1 {
-		fmt.Printf("Задача с ID: %d не существует", id)
-		fmt.Print("\n")
+		fmt.Printf("Задача с ID: %s не существует\n", id)
 	} else {
 		taskList = append(taskList[:indexToRemove], taskList[indexToRemove+1:]...)
-		fmt.Printf("Задача с ID: %d удалена", id)
-		fmt.Print("\n")
+		fmt.Printf("Задача с ID: %s удалена\n", id)
 	}
 }
 
 func MaskTask() {
 	fmt.Println("Отмечаем выполненную задачу")
-	var id int
 	fmt.Println("Введите ID задачи")
-	fmt.Scan(&id)
+	id := GetInputString()
 	indexToEdit := -1
 	for i, task := range taskList {
 		if task.ID == id {
@@ -87,20 +120,17 @@ func MaskTask() {
 		}
 	}
 	if indexToEdit == -1 {
-		fmt.Printf("Задача с ID: %d не существует", id)
-		fmt.Print("\n")
+		fmt.Printf("Задача с ID: %s не существует\n", id)
 	} else {
 		taskList[indexToEdit].Status = true
-		fmt.Printf("Задача с ID: %d выполнена", id)
-		fmt.Print("\n")
+		fmt.Printf("Задача с ID: %s выполнена\n", id)
 	}
 }
 
 func EditTask() {
 	fmt.Println("Редактируем задачу")
-	var id int
 	fmt.Println("Введите ID задачи")
-	fmt.Scan(&id)
+	id := GetInputString()
 	indexToEdit := -1
 	for i, task := range taskList {
 		if task.ID == id {
@@ -110,44 +140,41 @@ func EditTask() {
 	}
 
 	if indexToEdit == -1 {
-		fmt.Printf("Задача с ID: %d не существует", id)
-		fmt.Print("\n")
+		fmt.Printf("Задача с ID: %s не существует\n", id)
 	} else {
 		fmt.Println("Выберите что хотите редактировать:")
 		fmt.Println("1. Name")
 		fmt.Println("2. Status")
-		var choiceEdits int
-		fmt.Scan(&choiceEdits)
+		choiceEdits := GetInputInt()
 		switch choiceEdits {
 		case 1:
 			fmt.Println("Редактируем имя")
-			var newName string
-			fmt.Scan(&newName)
+			newName := GetInputString()
 			taskList[indexToEdit].Name = newName
+			fmt.Printf("Задача с ID: %s редактирована\n", id)
 		case 2:
 			fmt.Println("Редактируем status")
 			fmt.Println("1. Выполнена")
 			fmt.Println("2. Не выполнена")
-			var statusChoice int
-			fmt.Scan(&statusChoice)
+			statusChoice := GetInputInt()
 			if statusChoice == 1 {
 				taskList[indexToEdit].Status = true
 			} else {
 				taskList[indexToEdit].Status = false
 			}
+			fmt.Printf("Задача с ID: %s редактирована\n", id)
+		default:
+			fmt.Println("Неверный выбор. Попробуй еще раз")
 		}
-		fmt.Printf("Задача с ID: %d редактирована", id)
-		fmt.Print("\n")
 	}
 }
 
 func ShowTasks() {
 	fmt.Println("Задачи:")
 	for _, task := range taskList {
-		fmt.Printf("ID: %d\n", task.ID)
+		fmt.Printf("ID: %s\n", task.ID)
 		fmt.Printf("Name: %s\n", task.Name)
 		fmt.Printf("Status: %t\n", task.Status)
-		fmt.Print("\n")
 	}
 }
 
@@ -155,24 +182,47 @@ func SaveTasks(filename string) {
 	file, err := os.Create(filename)
 	if err != nil {
 		fmt.Println("Ошибка создания файла:", err)
+		return
 	}
-	defer file.Close()
-
+	var closeErr error
+	defer func() {
+		closeErr = file.Close()
+		if closeErr != nil {
+			fmt.Println("Ошибка при закрытии файла:", err)
+		}
+	}()
 	writer := bufio.NewWriter(file)
 	for _, task := range taskList {
-		line := strconv.Itoa(task.ID) + "," + task.Name + "," + strconv.FormatBool(task.Status) + "\n"
-		writer.WriteString(line)
+		line := task.ID + "," + task.Name + "," + strconv.FormatBool(task.Status) + "\n"
+		_, err = writer.WriteString(line)
+		if err != nil {
+			fmt.Println("Ошибка записи в файла: ", err)
+			return
+		}
 	}
-	writer.Flush()
 
+	err = writer.Flush()
+	if err != nil {
+		fmt.Println("Ошибка сохранения в файл: ", err)
+		return
+	}
+
+	fmt.Println("Данные успешно сохранены")
 }
 
 func LoadTasks(filename string) {
 	file, err := os.Open(filename)
 	if err != nil {
 		fmt.Println("Ошибка открытия файла:", err)
+		return
 	}
-	defer file.Close()
+	var closeErr error
+	defer func() {
+		closeErr = file.Close()
+		if closeErr != nil {
+			fmt.Println("Ошибка при закрытии файла:", err)
+		}
+	}()
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
@@ -181,7 +231,7 @@ func LoadTasks(filename string) {
 		if len(pars) != 3 {
 			continue
 		}
-		id, _ := strconv.Atoi(pars[0])
+		id := pars[0]
 		name := pars[1]
 		status, _ := strconv.ParseBool(pars[2])
 		taskList = append(taskList,
@@ -191,17 +241,17 @@ func LoadTasks(filename string) {
 				Status: status,
 			})
 	}
-	if err := scanner.Err(); err != nil {
+	if err = scanner.Err(); err != nil {
 		fmt.Println("Ошибка при чтении файла:", err)
 	}
+	fmt.Println("Данные успешно заргужены")
 }
 
 func main() {
-	var choice int
-	flag := true
-	for flag == true {
+	for {
 		menu()
-		fmt.Scan(&choice)
+		fmt.Print("Введите номер выбора: ")
+		choice := GetInputInt()
 		switch choice {
 		case 1:
 			AddTask()
@@ -218,8 +268,10 @@ func main() {
 		case 7:
 			SaveTasks("tasks.txt")
 		case 8:
-			flag = false
+			fmt.Println("Выход из программы")
+			return
+		default:
+			fmt.Println("Неверный выбор. Попробуй еще раз")
 		}
 	}
-
 }
